@@ -19,6 +19,9 @@ dependencies = [
     "tqdm>=4.67.1",
     "wandb>=0.19.7",
     "ty>=0.0.1a16",
+    "types-tqdm>=4.67.0.20250809",
+    "types-regex>=2025.9.1.20250903",
+    "scalene>=1.5.54",
 ]
 
 [build-system]
