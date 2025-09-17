@@ -1,7 +1,64 @@
+from __future__ import annotations
+
 import os
-from typing import BinaryIO
+from dataclasses import dataclass
+from typing import BinaryIO, NamedTuple
+
+from tests.common import gpt2_bytes_to_unicode
 
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+
+
+BYTES_TO_UNICODE = gpt2_bytes_to_unicode()
+
+
+class BytePair(NamedTuple):  # noqa: F821
+    left: bytes
+    right: bytes
+
+    @property
+    def merged_bytes(self):
+        return self.left + self.right
+
+    def __str__(self) -> str:
+        return f"({bytes_to_unicode(self.left)} {bytes_to_unicode(self.right)})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+@dataclass
+class TokenRef:
+    tokens: list[bytes]
+    count: int
+
+    @property
+    def bp_counts(self) -> dict[BytePair, int]:
+        bp_to_counts: dict[BytePair, int] = {}
+
+        for i in range(len(self.tokens) - 1):
+            bp = BytePair(self.tokens[i], self.tokens[i + 1])
+            if bp not in bp_to_counts:
+                bp_to_counts[bp] = 0
+            bp_to_counts[bp] += self.count
+
+        return bp_to_counts
+
+    def merge(self, bp: BytePair):
+        new_tokens: list[bytes] = []
+
+        idx = 0
+        while idx < len(self.tokens) - 1:
+            pair = BytePair(self.tokens[idx], self.tokens[idx + 1])
+
+            if pair == bp:
+                new_tokens.append(bp.merged_bytes)
+                idx += 2
+            else:
+                new_tokens.append(self.tokens[idx])
+                idx += 1
+
+        self.tokens = new_tokens
 
 
 def find_chunk_boundaries(
@@ -49,3 +106,11 @@ def find_chunk_boundaries(
 
     # Make sure all boundaries are unique, but might be fewer than desired_num_chunks
     return sorted(set(chunk_boundaries))
+
+
+def split_bytes(b: bytes) -> list[bytes]:
+    return [bytes([bb]) for bb in list(b)]
+
+
+def bytes_to_unicode(b: bytes) -> str:
+    return "".join([BYTES_TO_UNICODE[bb] for bb in list(b)])
