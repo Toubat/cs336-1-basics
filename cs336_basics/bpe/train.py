@@ -38,12 +38,13 @@ def merge_counts(a: dict[bytes, int], b: dict[bytes, int]) -> dict[bytes, int]:
 
 
 def get_pretoken_counts(input_path: str | os.PathLike, special_tokens: list[str]) -> dict[bytes, int]:
+    parellel_count = cpu_count() * 2
     with open(input_path, "rb") as f:
-        boundaries = find_chunk_boundaries(f, cpu_count(), b"<|endoftext|>")
+        boundaries = find_chunk_boundaries(f, parellel_count, b"<|endoftext|>")
         print("Finished finding chunk boundaries")
 
     pretoken_counts: dict[bytes, int] = {}
-    with Pool(cpu_count()) as pool:
+    with Pool(parellel_count) as pool:
         results: list[ApplyResult] = []
         for start, end in zip(boundaries[:-1], boundaries[1:]):
             results.append(pool.apply_async(pretokenize, (input_path, start, end, special_tokens)))
