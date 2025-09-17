@@ -77,7 +77,11 @@ def get_highest_bp(bp_to_counts: dict[BytePair, int]):
     max_bp, max_count = next(iter(bp_to_counts.items()))
 
     for bp, count in bp_to_counts.items():
-        if count > max_count or (count == max_count and bp.merged_bytes > max_bp.merged_bytes):
+        if count > max_count or (
+            count == max_count
+            and bp[0] > max_bp[0]
+            or (count == max_count and bp[0] == max_bp[0] and bp[1] > max_bp[1])
+        ):
             max_bp, max_count = bp, count
 
     return max_bp
