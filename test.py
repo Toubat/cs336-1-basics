@@ -6,7 +6,7 @@ from cs336_basics.bpe.utils import bytes_to_unicode
 
 def main():
     vocab, merges = run_train_bpe(
-        input_path="data/TinyStoriesV2-GPT4-valid.txt",
+        input_path="data/TinyStoriesV2-GPT4-train.txt",
         vocab_size=10000,
         special_tokens=["<|endoftext|>"],
     )

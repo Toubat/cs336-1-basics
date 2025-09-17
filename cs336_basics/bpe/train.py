@@ -10,6 +10,9 @@ from tqdm import tqdm
 
 from cs336_basics.bpe.utils import PAT, BytePair, TokenRef, find_chunk_boundaries, split_bytes
 
+# Disable library logs by default; can be enabled per-call with verbose=True
+logger.disable("cs336_basics")
+
 
 def cpu_count() -> int:
     return os.cpu_count() or 1
@@ -42,7 +45,7 @@ def merge_counts(a: dict[bytes, int], b: dict[bytes, int]) -> dict[bytes, int]:
 
 def get_pretoken_counts(input_path: str | os.PathLike, special_tokens: list[str]) -> dict[bytes, int]:
     parellel_count = cpu_count() * 2
-    logger.info(
+    logger.debug(
         "Starting pretokenization: input_path='{}', special_tokens={}, workers={}",
         input_path,
         special_tokens,
@@ -50,7 +53,7 @@ def get_pretoken_counts(input_path: str | os.PathLike, special_tokens: list[str]
     )
     with open(input_path, "rb") as f:
         boundaries = find_chunk_boundaries(f, parellel_count, b"<|endoftext|>")
-        logger.info(
+        logger.debug(
             "Found {} chunk boundaries ({} chunks)",
             len(boundaries),
             max(0, len(boundaries) - 1),
@@ -65,7 +68,7 @@ def get_pretoken_counts(input_path: str | os.PathLike, special_tokens: list[str]
         for result in tqdm(results, desc="Parallel Pretokenization"):
             counts = result.get()
             merge_counts(pretoken_counts, counts)
-    logger.info("Pretokenization complete: {} unique pretoken strings", len(pretoken_counts))
+    logger.debug("Pretokenization complete: {} unique pretoken strings", len(pretoken_counts))
 
     return pretoken_counts
 
@@ -108,14 +111,18 @@ def run_train_bpe(
                 Merges are ordered by order of creation.
     """
 
-    logger.info(
+    verbose: bool = bool(kwargs.get("verbose", False))
+    if verbose:
+        logger.enable("cs336_basics")
+
+    logger.debug(
         "Begin BPE training: target_vocab_size={}, special_tokens_count={}",
         vocab_size,
         len(special_tokens),
     )
     pretoken_counts = get_pretoken_counts(input_path, special_tokens)
     token_refs = [TokenRef(tokens=split_bytes(pretoken), count=count) for pretoken, count in pretoken_counts.items()]
-    logger.info("Initialized {} token references", len(token_refs))
+    logger.debug("Initialized {} token references", len(token_refs))
 
     bp_to_counts: dict[BytePair, int] = {}
     bp_to_token_ref_ids: dict[BytePair, set[int]] = {}
@@ -136,7 +143,7 @@ def run_train_bpe(
         )
     }
 
-    logger.info("Seeded base vocabulary with {} items", len(vocab))
+    logger.debug("Seeded base vocabulary with {} items", len(vocab))
 
     iteration = 0
     while len(vocab) < vocab_size and len(bp_to_counts) > 0:
@@ -147,7 +154,7 @@ def run_train_bpe(
 
         iteration += 1
         if iteration % 100 == 0 or iteration == 1:
-            logger.info(
+            logger.debug(
                 "Iteration {}: merged {} -> id {} (vocab={}/{})",
                 iteration,
                 bp,
@@ -201,5 +208,7 @@ def run_train_bpe(
         del bp_to_counts[bp]
         del bp_to_token_ref_ids[bp]
 
-    logger.info("BPE training complete: final_vocab_size={}, merges={}", len(vocab), len(merges))
+    logger.debug("BPE training complete: final_vocab_size={}, merges={}", len(vocab), len(merges))
+    if verbose:
+        logger.disable("cs336_basics")
     return vocab, merges

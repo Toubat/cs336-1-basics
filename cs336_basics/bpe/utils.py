@@ -48,15 +48,16 @@ class TokenRef:
         new_tokens: list[bytes] = []
 
         idx = 0
-        while idx < len(self.tokens) - 1:
-            pair = BytePair(self.tokens[idx], self.tokens[idx + 1])
-
-            if pair == bp:
-                new_tokens.append(bp.merged_bytes)
-                idx += 2
-            else:
-                new_tokens.append(self.tokens[idx])
-                idx += 1
+        # Merge non-overlapping occurrences from left to right, preserving trailing token
+        while idx < len(self.tokens):
+            if idx < len(self.tokens) - 1:
+                pair = BytePair(self.tokens[idx], self.tokens[idx + 1])
+                if pair == bp:
+                    new_tokens.append(bp.merged_bytes)
+                    idx += 2
+                    continue
+            new_tokens.append(self.tokens[idx])
+            idx += 1
 
         self.tokens = new_tokens
 
