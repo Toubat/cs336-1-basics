@@ -22,6 +22,7 @@ dependencies = [
     "types-tqdm>=4.67.0.20250809",
     "types-regex>=2025.9.1.20250903",
     "scalene>=1.5.54",
+    "loguru>=0.7.3",
 ]
 
 [build-system]

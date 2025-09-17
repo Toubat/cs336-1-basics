@@ -5,6 +5,7 @@ from multiprocessing import Pool
 from multiprocessing.pool import ApplyResult
 
 import regex as re
+from loguru import logger
 from tqdm import tqdm
 
 from cs336_basics.bpe.utils import PAT, BytePair, TokenRef, find_chunk_boundaries, split_bytes
@@ -41,9 +42,19 @@ def merge_counts(a: dict[bytes, int], b: dict[bytes, int]) -> dict[bytes, int]:
 
 def get_pretoken_counts(input_path: str | os.PathLike, special_tokens: list[str]) -> dict[bytes, int]:
     parellel_count = cpu_count() * 2
+    logger.info(
+        "Starting pretokenization: input_path='{}', special_tokens={}, workers={}",
+        input_path,
+        special_tokens,
+        parellel_count,
+    )
     with open(input_path, "rb") as f:
         boundaries = find_chunk_boundaries(f, parellel_count, b"<|endoftext|>")
-        print("Finished finding chunk boundaries")
+        logger.info(
+            "Found {} chunk boundaries ({} chunks)",
+            len(boundaries),
+            max(0, len(boundaries) - 1),
+        )
 
     pretoken_counts: dict[bytes, int] = {}
     with Pool(parellel_count) as pool:
@@ -54,6 +65,7 @@ def get_pretoken_counts(input_path: str | os.PathLike, special_tokens: list[str]
         for result in tqdm(results, desc="Parallel Pretokenization"):
             counts = result.get()
             merge_counts(pretoken_counts, counts)
+    logger.info("Pretokenization complete: {} unique pretoken strings", len(pretoken_counts))
 
     return pretoken_counts
 
@@ -96,8 +108,14 @@ def run_train_bpe(
                 Merges are ordered by order of creation.
     """
 
+    logger.info(
+        "Begin BPE training: target_vocab_size={}, special_tokens_count={}",
+        vocab_size,
+        len(special_tokens),
+    )
     pretoken_counts = get_pretoken_counts(input_path, special_tokens)
     token_refs = [TokenRef(tokens=split_bytes(pretoken), count=count) for pretoken, count in pretoken_counts.items()]
+    logger.info("Initialized {} token references", len(token_refs))
 
     bp_to_counts: dict[BytePair, int] = {}
     bp_to_token_ref_ids: dict[BytePair, set[int]] = {}
@@ -118,10 +136,27 @@ def run_train_bpe(
         )
     }
 
-    while len(vocab) < vocab_size:
-        bp = get_highest_bp(bp_to_counts)
-        vocab[len(vocab)] = bp.merged_bytes
+    logger.info("Seeded base vocabulary with {} items", len(vocab))
 
+    iteration = 0
+    while len(vocab) < vocab_size and len(bp_to_counts) > 0:
+        bp = get_highest_bp(bp_to_counts)
+        new_token_id = len(vocab)
+        vocab[new_token_id] = bp.merged_bytes
+        merges.append((bp.left, bp.right))
+
+        iteration += 1
+        if iteration % 100 == 0 or iteration == 1:
+            logger.info(
+                "Iteration {}: merged {} -> id {} (vocab={}/{})",
+                iteration,
+                bp,
+                new_token_id,
+                len(vocab),
+                vocab_size,
+            )
+
+        bp_token_to_remove: dict[BytePair, set[int]] = {}
         for ref_idx in bp_to_token_ref_ids[bp]:
             token_ref = token_refs[ref_idx]
 
@@ -130,8 +165,10 @@ def run_train_bpe(
             next_bp_counts = token_ref.bp_counts
 
             for token_bp in curr_bp_counts:
+                # we do not mutate bp_to_token_ref_ids here, since it will change set size during iteration
                 if token_bp not in next_bp_counts:
-                    bp_to_token_ref_ids[token_bp].remove(ref_idx)
+                    bp_token_to_remove.setdefault(token_bp, set())
+                    bp_token_to_remove[token_bp].add(ref_idx)
 
                 curr_count = curr_bp_counts[token_bp]
                 next_count = next_bp_counts[token_bp] if token_bp in next_bp_counts else 0
@@ -142,7 +179,7 @@ def run_train_bpe(
                 )
 
             for token_bp in next_bp_counts:
-                # skip every processed byte pair from previous iteration
+                # skip every processed byte pair from previous iteration, since we already processed it
                 if token_bp in curr_bp_counts:
                     continue
 
@@ -153,6 +190,10 @@ def run_train_bpe(
                 bp_to_token_ref_ids.setdefault(token_bp, set())
                 bp_to_token_ref_ids[token_bp].add(ref_idx)
 
+        # remove token refs that are no longer needed, since they are no longer in the token ref
+        for bp_to_remove, token_ref_ids in bp_token_to_remove.items():
+            bp_to_token_ref_ids[bp_to_remove] -= token_ref_ids
+
         bp_count, bp_ref_count = bp_to_counts[bp], len(bp_to_token_ref_ids[bp])
         assert bp_count == bp_ref_count == 0, (
             f"Byte pair count and reference count must be 0: {bp}, got {bp_count} and {bp_ref_count}"
@@ -160,4 +201,5 @@ def run_train_bpe(
         del bp_to_counts[bp]
         del bp_to_token_ref_ids[bp]
 
+    logger.info("BPE training complete: final_vocab_size={}, merges={}", len(vocab), len(merges))
     return vocab, merges
