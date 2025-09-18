@@ -84,6 +84,7 @@ class Tokenizer:
     def _encode_pretoken_iter(self, pretoken: bytes, cached_pretoken_to_ids: dict[bytes, list[int]]) -> Iterator[int]:
         # for special tokens, we can just add the token ID to the list and return
         if pretoken in self.special_token_bytes:
+            cached_pretoken_to_ids[pretoken] = [self.token_bytes_to_ids[pretoken]]
             yield self.token_bytes_to_ids[pretoken]
             return
 
