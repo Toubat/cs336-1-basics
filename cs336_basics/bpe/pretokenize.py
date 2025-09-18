@@ -24,7 +24,9 @@ def pretokenize_text_iter(text: str, special_tokens: list[str]) -> Iterator[byte
         return
 
     start_index = 0
-    for match in re.finditer("|".join(re.escape(token) for token in special_tokens), text):
+    # Sort special tokens by length in descending order to match longer tokens first
+    sorted_tokens = sorted(special_tokens, key=len, reverse=True)
+    for match in re.finditer("|".join(re.escape(token) for token in sorted_tokens), text):
         matched_token_bytes = match.group().encode("utf-8")
 
         for pre_token in re.finditer(PAT, text, pos=start_index, endpos=match.start()):
@@ -43,9 +45,11 @@ def pretokenize_text_iter(text: str, special_tokens: list[str]) -> Iterator[byte
 def pretokenize_text(text: str, special_tokens: list[str]) -> dict[bytes, int]:
     pretoken_counts: dict[bytes, int] = {}
 
+    # Sort special tokens by length in descending order to match longer tokens first
+    sorted_tokens = sorted(special_tokens, key=len, reverse=True) if special_tokens else []
     chunk_iter = (
-        re.splititer("|".join(re.escape(token) for token in special_tokens), text)
-        if len(special_tokens) > 0
+        re.splititer("|".join(re.escape(token) for token in sorted_tokens), text)
+        if len(sorted_tokens) > 0
         else [text]
     )
 
