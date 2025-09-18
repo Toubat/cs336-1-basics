@@ -4,7 +4,7 @@ import os
 
 from loguru import logger
 
-from cs336_basics.bpe.pretokenize import get_pretoken_counts
+from cs336_basics.bpe.pretokenize import pretokenize_file
 from cs336_basics.bpe.utils import BytePair, TokenRef, split_bytes
 
 # Disable library logs by default; can be enabled per-call with verbose=True
@@ -62,7 +62,7 @@ def run_train_bpe(
         vocab_size,
         len(special_tokens),
     )
-    pretoken_counts = get_pretoken_counts(input_path, special_tokens)
+    pretoken_counts = pretokenize_file(input_path, special_tokens)
     token_refs = [TokenRef(tokens=split_bytes(pretoken), count=count) for pretoken, count in pretoken_counts.items()]
     logger.debug("Initialized {} token references", len(token_refs))
 

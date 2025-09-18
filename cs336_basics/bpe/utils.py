@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import BinaryIO, NamedTuple
 
 from tests.common import gpt2_bytes_to_unicode
@@ -30,7 +30,7 @@ class BytePair(NamedTuple):  # noqa: F821
 @dataclass
 class TokenRef:
     tokens: list[bytes]
-    count: int
+    count: int = field(default=0)
 
     @property
     def bp_counts(self) -> dict[BytePair, int]:
