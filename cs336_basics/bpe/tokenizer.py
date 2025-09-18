@@ -117,7 +117,4 @@ class Tokenizer:
                 yield from self._encode_pretoken_iter(pretoken, pretoken_to_ids)
 
     def decode(self, ids: list[int]) -> str:
-        """
-        Decode a sequence of token IDs into text.
-        """
-        pass
+        return b"".join([self.vocab[id] for id in ids]).decode("utf-8", errors="replace")
