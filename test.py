@@ -9,6 +9,7 @@ def main():
         input_path="data/TinyStoriesV2-GPT4-train.txt",
         vocab_size=10000,
         special_tokens=["<|endoftext|>"],
+        verbose=True,
     )
 
     with open("test_vocab.json", "w") as f:
