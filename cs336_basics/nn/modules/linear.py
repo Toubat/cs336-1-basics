@@ -17,10 +17,10 @@ class Linear(nn.Module):
         super().__init__()
 
         std = math.sqrt(2 / (in_features + out_features))
-        weights = torch.empty((out_features, in_features), device=device, dtype=dtype)
-        nn.init.trunc_normal_(weights, mean=0.0, std=std, a=-3 * std, b=3 * std)
+        weight = torch.empty((out_features, in_features), device=device, dtype=dtype)
+        nn.init.trunc_normal_(weight, mean=0.0, std=std, a=-3 * std, b=3 * std)
 
-        self.weights = nn.Parameter(weights)
+        self.weight = nn.Parameter(weight)
 
     def forward(self, x: Float[Tensor, " ... in_features"]) -> Float[Tensor, " ... out_features"]:
-        return einsum(x, self.weights, " ... in_features, out_features in_features -> ... out_features")
+        return einsum(x, self.weight, " ... in_features, out_features in_features -> ... out_features")
