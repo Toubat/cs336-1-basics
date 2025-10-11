@@ -12,6 +12,7 @@ from torch import Tensor
 from cs336_basics.bpe.tokenizer import Tokenizer
 from cs336_basics.bpe.train import run_train_bpe as run_train_bpe_impl
 from cs336_basics.nn import FFN, Embedding, Linear, RMSNorm
+from cs336_basics.nn.modules.rope import apply_rope
 
 
 def run_linear(
@@ -212,7 +213,7 @@ def run_rope(
     Returns:
         Float[Tensor, " ... sequence_length d_k"]: Tensor with RoPEd input.
     """
-    raise NotImplementedError
+    return apply_rope(d_k, theta, max_seq_len, in_query_or_key, token_positions)
 
 
 def run_transformer_block(
