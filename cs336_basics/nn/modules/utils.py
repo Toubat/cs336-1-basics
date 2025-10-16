@@ -1,5 +1,8 @@
-from einops import reduce
-from torch import Tensor
+from math import sqrt
+
+from einops import einsum, reduce
+from jaxtyping import Bool, Float
+from torch import Tensor, torch
 
 
 def softmax(x: Tensor, dim: int = -1) -> Tensor:
@@ -11,3 +14,19 @@ def softmax(x: Tensor, dim: int = -1) -> Tensor:
     x = x / x_sum
 
     return x.swapdims(-1, dim)
+
+
+def scaled_dot_product_attention(
+    q: Float[Tensor, "... s k"],
+    k: Float[Tensor, "... s k"],
+    v: Float[Tensor, "... s v"],
+    mask: Bool[Tensor, "s s"] | None = None,
+):
+    d_k = sqrt(q.shape[-1])
+    q_k = einsum(q, k, "... s_in k, ... s_out k -> ... s_in s_out") / d_k
+
+    if mask is not None:
+        q_k = q_k.masked_fill(~mask, value=-torch.inf)
+
+    q_k = softmax(q_k, dim=-1)
+    return einsum(q_k, v, "... s_in s_out, ... s_out v -> ... s_in v")

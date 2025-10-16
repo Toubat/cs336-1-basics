@@ -13,7 +13,7 @@ from cs336_basics.bpe.tokenizer import Tokenizer
 from cs336_basics.bpe.train import run_train_bpe as run_train_bpe_impl
 from cs336_basics.nn import FFN, Embedding, Linear, RMSNorm
 from cs336_basics.nn.modules.rope import apply_rope
-from cs336_basics.nn.modules.utils import softmax
+from cs336_basics.nn.modules.utils import scaled_dot_product_attention, softmax
 
 
 def run_linear(
@@ -118,7 +118,7 @@ def run_scaled_dot_product_attention(
     Returns:
         Float[Tensor, " ... queries d_v"]: Output of SDPA
     """
-    raise NotImplementedError
+    return scaled_dot_product_attention(Q, K, V, mask)
 
 
 def run_multihead_self_attention(
