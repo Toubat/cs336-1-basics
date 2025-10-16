@@ -13,6 +13,7 @@ from cs336_basics.bpe.tokenizer import Tokenizer
 from cs336_basics.bpe.train import run_train_bpe as run_train_bpe_impl
 from cs336_basics.nn import FFN, Embedding, Linear, RMSNorm
 from cs336_basics.nn.modules.rope import apply_rope
+from cs336_basics.nn.modules.utils import softmax
 
 
 def run_linear(
@@ -446,7 +447,7 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
-    raise NotImplementedError
+    return softmax(in_features, dim)
 
 
 def run_cross_entropy(
