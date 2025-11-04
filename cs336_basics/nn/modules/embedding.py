@@ -3,8 +3,6 @@ from einops import rearrange
 from jaxtyping import Float, Int
 from torch import Tensor, nn
 
-nn.Embedding
-
 
 class Embedding(nn.Module):
     def __init__(

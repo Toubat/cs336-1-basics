@@ -5,7 +5,7 @@ from cs336_basics.nn.modules.linear import Linear
 from cs336_basics.nn.modules.rmsnorm import RMSNorm
 from cs336_basics.nn.modules.rope import apply_rope
 from cs336_basics.nn.modules.transformer_block import TransformerBlock
-from cs336_basics.nn.modules.utils import RoPEConfig
+from cs336_basics.nn.modules.utils import RoPEConfig, scaled_dot_product_attention, softmax
 
 __all__ = [
     "Linear",
@@ -17,4 +17,6 @@ __all__ = [
     "apply_rope",
     "RoPEConfig",
     "silu",
+    "scaled_dot_product_attention",
+    "softmax",
 ]
