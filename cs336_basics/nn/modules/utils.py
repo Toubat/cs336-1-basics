@@ -21,7 +21,7 @@ def scaled_dot_product_attention(
     k: Float[Tensor, "... s k"],
     v: Float[Tensor, "... s v"],
     mask: Bool[Tensor, "s s"] | None = None,
-):
+) -> Float[Tensor, "... s v"]:
     d_k = sqrt(q.shape[-1])
     q_k = einsum(q, k, "... s_in k, ... s_out k -> ... s_in s_out") / d_k
 
