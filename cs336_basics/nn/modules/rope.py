@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import cast
 
 import torch
-from einops import einsum
+from einops import einsum, repeat
 from jaxtyping import Float, Int
 from torch import Tensor, nn
 
@@ -39,7 +39,7 @@ class RotaryPositionalEmbedding(nn.Module):
     def forward(
         self,
         x: Float[Tensor, "... seq_len d_k"],
-        token_positions: Int[Tensor, "... seq_len"],
+        token_positions: Int[Tensor, "... seq_len"] | None = None,
     ) -> Float[Tensor, "... seq_len d_k"]:
         """
         Apply RoPE to the input tensor.
@@ -53,6 +53,10 @@ class RotaryPositionalEmbedding(nn.Module):
         """
         sin_table = cast(Tensor, self.sin_table)
         cos_table = cast(Tensor, self.cos_table)
+
+        if token_positions is None:
+            token_positions = torch.arange(x.shape[-2], device=x.device, dtype=torch.long)
+            token_positions = repeat(token_positions, "... -> 1 ...")
 
         rope_sin = sin_table[token_positions]  # (..., seq_len, d_k // 2)
         rope_cos = cos_table[token_positions]  # (..., seq_len, d_k // 2)
@@ -72,7 +76,7 @@ def apply_rope(
     theta: float,
     max_seq_len: int,
     x: Float[Tensor, "... seq_len d_k"],
-    token_positions: Int[Tensor, "... seq_len"],
+    token_positions: Int[Tensor, "... seq_len"] | None = None,
     device: torch.device | None = None,
 ) -> Float[Tensor, "... seq_len d_k"]:
     key = (d_k, theta, max_seq_len)

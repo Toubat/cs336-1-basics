@@ -1,11 +1,11 @@
 import torch
 from einops import rearrange
-from jaxtyping import Float, Int
+from jaxtyping import Float
 from torch import Tensor, nn
 
-from cs336_basics.nn import Linear
+from cs336_basics.nn.modules.linear import Linear
 from cs336_basics.nn.modules.rope import apply_rope
-from cs336_basics.nn.modules.utils import scaled_dot_product_attention
+from cs336_basics.nn.modules.utils import RoPEConfig, scaled_dot_product_attention
 
 
 class MultiHeadAttention(nn.Module):
@@ -27,9 +27,7 @@ class MultiHeadAttention(nn.Module):
     def forward(
         self,
         x: Float[Tensor, "bs seq_len d_model"],
-        theta: float | None = None,
-        max_seq_len: int | None = None,
-        token_positions: Int[Tensor, " ... seq_len"] | None = None,
+        rope_config: RoPEConfig | None = None,
     ) -> Float[Tensor, "bs seq_len d_model"]:
         qkv = self.qkv_proj(x)  # (bs seq_len d_model * 3)
         q, k, v = rearrange(
@@ -39,9 +37,13 @@ class MultiHeadAttention(nn.Module):
             d_k=self.d_k,
         )  # (bs, num_heads, seq_len, d_k)
 
-        if theta is not None and max_seq_len is not None and token_positions is not None:
-            q = apply_rope(self.d_k, theta, max_seq_len, q, token_positions)
-            k = apply_rope(self.d_k, theta, max_seq_len, k, token_positions)
+        if rope_config is not None:
+            theta = rope_config.theta
+            d_k = rope_config.d_k
+            max_seq_len = rope_config.max_seq_len
+            token_positions = rope_config.token_positions
+            q = apply_rope(d_k, theta, max_seq_len, q, token_positions)
+            k = apply_rope(d_k, theta, max_seq_len, k, token_positions)
 
         seq_len = q.shape[-2]
         mask = torch.tril(torch.ones((seq_len, seq_len))).bool()  # (seq_len, seq_len)

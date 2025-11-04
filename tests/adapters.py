@@ -11,10 +11,8 @@ from torch import Tensor
 
 from cs336_basics.bpe.tokenizer import Tokenizer
 from cs336_basics.bpe.train import run_train_bpe as run_train_bpe_impl
-from cs336_basics.nn import FFN, Embedding, Linear, RMSNorm
-from cs336_basics.nn.modules.attn import MultiHeadAttention
-from cs336_basics.nn.modules.rope import apply_rope
-from cs336_basics.nn.modules.utils import scaled_dot_product_attention, softmax
+from cs336_basics.nn import FFN, Embedding, Linear, MultiHeadAttention, RMSNorm, TransformerBlock, apply_rope, silu
+from cs336_basics.nn.modules.utils import RoPEConfig, scaled_dot_product_attention, softmax
 
 
 def run_linear(
@@ -203,7 +201,14 @@ def run_multihead_self_attention_with_rope(
     qkv_weight = torch.cat([q_proj_weight, k_proj_weight, v_proj_weight], dim=0)
     attn.load_state_dict({"qkv_proj.weight": qkv_weight, "o_proj.weight": o_proj_weight})
 
-    return attn(in_features, theta=theta, max_seq_len=max_seq_len, token_positions=token_positions)
+    rope_config = RoPEConfig(
+        theta=theta,
+        d_k=d_model // num_heads,
+        max_seq_len=max_seq_len,
+        token_positions=token_positions,
+    )
+
+    return attn(in_features, rope_config=rope_config)
 
 
 def run_rope(
@@ -298,7 +303,31 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    q_proj_weight = weights["attn.q_proj.weight"]
+    k_proj_weight = weights["attn.k_proj.weight"]
+    v_proj_weight = weights["attn.v_proj.weight"]
+    o_proj_weight = weights["attn.output_proj.weight"]
+    ln1_weight = weights["ln1.weight"]
+    ln2_weight = weights["ln2.weight"]
+    ffn_w1_weight = weights["ffn.w1.weight"]
+    ffn_w2_weight = weights["ffn.w2.weight"]
+    ffn_w3_weight = weights["ffn.w3.weight"]
+
+    transformer_block = TransformerBlock(d_model, num_heads, d_ff, device=weights["attn.q_proj.weight"].device)
+    transformer_block.load_state_dict(
+        {
+            "ln1.gamma": ln1_weight,
+            "ln2.gamma": ln2_weight,
+            "attn.qkv_proj.weight": torch.cat([q_proj_weight, k_proj_weight, v_proj_weight], dim=0),
+            "attn.o_proj.weight": o_proj_weight,
+            "ffn.w1.weight": ffn_w1_weight,
+            "ffn.w2.weight": ffn_w2_weight,
+            "ffn.w3.weight": ffn_w3_weight,
+        }
+    )
+
+    rope_config = RoPEConfig(theta=theta, d_k=d_model // num_heads, max_seq_len=max_seq_len)
+    return transformer_block(in_features, rope_config=rope_config)
 
 
 def run_transformer_lm(
@@ -419,7 +448,7 @@ def run_silu(in_features: Float[Tensor, " ..."]) -> Float[Tensor, " ..."]:
         Float[Tensor,"..."]: of with the same shape as `in_features` with the output of applying
         SiLU to each element.
     """
-    raise NotImplementedError
+    return silu(in_features)
 
 
 def run_get_batch(

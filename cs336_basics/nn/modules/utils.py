@@ -1,8 +1,17 @@
+from dataclasses import dataclass
 from math import sqrt
 
 from einops import einsum, reduce
-from jaxtyping import Bool, Float
+from jaxtyping import Bool, Float, Int
 from torch import Tensor, torch
+
+
+@dataclass
+class RoPEConfig:
+    theta: float
+    d_k: int
+    max_seq_len: int
+    token_positions: Int[Tensor, " ... seq_len"] | None = None
 
 
 def softmax(x: Tensor, dim: int = -1) -> Tensor:
