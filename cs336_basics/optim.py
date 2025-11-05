@@ -1,3 +1,4 @@
+import math
 from collections.abc import Callable
 from typing import cast
 
@@ -47,3 +48,20 @@ class AdamW(torch.optim.Optimizer):
                 self.state[p]["t"] = t + 1
 
         return loss
+
+
+def lr_cosine_schedule(
+    t: int,
+    lr_max: float,
+    lr_min: float,
+    warmup_t: int,
+    cosine_cycle_t: int,
+) -> float:
+    if t < warmup_t:
+        return t * lr_max / warmup_t
+
+    if t <= cosine_cycle_t:
+        weight = 0.5 * (1 + math.cos(math.pi * (t - warmup_t) / (cosine_cycle_t - warmup_t)))
+        return lr_min + weight * (lr_max - lr_min)
+
+    return lr_min
