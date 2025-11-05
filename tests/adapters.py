@@ -14,6 +14,7 @@ from cs336_basics.bpe.tokenizer import Tokenizer
 from cs336_basics.bpe.train import run_train_bpe as run_train_bpe_impl
 from cs336_basics.nn import FFN, Embedding, Linear, MultiHeadAttention, RMSNorm, TransformerBlock, apply_rope, silu
 from cs336_basics.nn.modules.utils import RoPEConfig, scaled_dot_product_attention, softmax
+from cs336_basics.optim import AdamW
 from cs336_basics.transformer_lm import TransformerLM
 
 
@@ -551,7 +552,7 @@ def get_adamw_cls() -> Any:
     """
     Returns a torch.optim.Optimizer that implements AdamW.
     """
-    raise NotImplementedError
+    return AdamW
 
 
 def run_get_lr_cosine_schedule(
