@@ -1,5 +1,5 @@
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import cast
 
 import torch
@@ -65,3 +65,35 @@ def lr_cosine_schedule(
         return lr_min + weight * (lr_max - lr_min)
 
     return lr_min
+
+
+def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float) -> None:
+    """
+    Clips gradients by their global L2 norm.
+
+    Args:
+        parameters: Iterable of parameters with gradients
+        max_l2_norm: Maximum L2 norm threshold
+    """
+    epsilon = 1e-6
+
+    # Convert to list to allow multiple iterations
+    params_with_grad = [p for p in parameters if p.grad is not None]
+
+    if len(params_with_grad) == 0:
+        return
+
+    # Compute total L2 norm across all gradients
+    total_norm_squared = torch.tensor(0.0, requires_grad=False)
+    for p in params_with_grad:
+        assert p.grad is not None
+        total_norm_squared = total_norm_squared.add_(torch.sum(p.grad.data**2))
+
+    total_norm = total_norm_squared.sqrt_()
+    if total_norm < max_l2_norm:
+        return
+
+    factor = max_l2_norm / (total_norm + epsilon)
+    for p in params_with_grad:
+        assert p.grad is not None
+        p.grad.data.mul_(factor)

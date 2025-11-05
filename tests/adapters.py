@@ -14,7 +14,7 @@ from cs336_basics.bpe.tokenizer import Tokenizer
 from cs336_basics.bpe.train import run_train_bpe as run_train_bpe_impl
 from cs336_basics.nn import FFN, Embedding, Linear, MultiHeadAttention, RMSNorm, TransformerBlock, apply_rope, silu
 from cs336_basics.nn.modules.utils import RoPEConfig, scaled_dot_product_attention, softmax
-from cs336_basics.optim import AdamW, lr_cosine_schedule
+from cs336_basics.optim import AdamW, gradient_clipping, lr_cosine_schedule
 from cs336_basics.transformer_lm import TransformerLM
 
 
@@ -545,7 +545,8 @@ def run_gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm:
 
     The gradients of the parameters (parameter.grad) should be modified in-place.
     """
-    raise NotImplementedError
+
+    gradient_clipping(parameters, max_l2_norm)
 
 
 def get_adamw_cls() -> Any:
