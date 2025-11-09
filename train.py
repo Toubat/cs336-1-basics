@@ -8,6 +8,7 @@ from loguru import logger
 
 from cs336_basics.optim import AdamW, CosineAnnealingLRScheduler
 from cs336_basics.transformer_lm import TransformerLM
+from cs336_basics.utils import load_checkpoint
 
 Dataset = Literal["tinystories", "owt"]
 
@@ -110,22 +111,28 @@ def main(config: TrainingConfig):
         num_heads=config.model.num_heads,
         d_ff=config.model.d_ff,
         theta=config.model.theta,
-    ).to(device)
-
-    # log total model size
-    logger.info(f"Total model size: {sum(p.numel() for p in model.parameters()) / 1024**2:.2f} MB")
+    )
+    model.to(device)
 
     optimizer = AdamW(model.parameters())
 
+    if config.checkpoint_data_path is not None:
+        logger.info(f"Loading checkpoint from {config.checkpoint_data_path.name}")
+        t0 = load_checkpoint(config.checkpoint_data_path, model, optimizer)
+    else:
+        t0 = -1
+        logger.info("No checkpoint found, starting from scratch")
+
     lr_scheduler = CosineAnnealingLRScheduler(
         optimizer,
-        t_0=-1,
+        t_0=t0,
         lr_max=config.lr_max,
         lr_min=config.lr_min,
         warmup_t=config.warmup_t,
         cosine_cycle_t=config.cosine_cycle_t,
     )
 
+    logger.info(f"Total model size: {sum(p.numel() for p in model.parameters()) / 1024**2:.2f} MB")
     logger.info(f"Initial learning rate: {lr_scheduler.get_last_lr()}")
 
 
