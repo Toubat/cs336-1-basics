@@ -1,22 +1,15 @@
 import json
+import os
 from collections.abc import Iterable, Iterator
+from multiprocessing import Pool
+from pathlib import Path
+
+from loguru import logger
+from tqdm import tqdm
 
 from cs336_basics.bpe.pretokenize import pretokenize_text_iter
-from cs336_basics.bpe.utils import BytePair, TokenRef, split_bytes
+from cs336_basics.bpe.utils import BytePair, TokenRef, find_chunk_boundaries, split_bytes
 from tests.common import gpt2_bytes_to_unicode
-
-
-def _add_special_tokens(vocab: dict[int, bytes], special_tokens: list[str] | None = None):
-    vocab_values = set(vocab.values())
-
-    if special_tokens is None:
-        return
-
-    for special_token in special_tokens:
-        byte_encoded_special_token = special_token.encode("utf-8")
-        if byte_encoded_special_token in vocab_values:
-            continue
-        vocab[len(vocab)] = special_token.encode("utf-8")
 
 
 class Tokenizer:
@@ -119,3 +112,79 @@ class Tokenizer:
 
     def decode(self, ids: list[int]) -> str:
         return b"".join([self.vocab[id] for id in ids]).decode("utf-8", errors="replace")
+
+
+def encode_file_stream(
+    file_path: str | Path,
+    vocab_path: str,
+    merges_path: str,
+    special_tokens: list[str] | None = None,
+) -> Iterator[int]:
+    """Encode a large file using parallel processing to avoid memory issues.
+
+    Args:
+        file_path: Path to the file to encode.
+        vocab_path: Path to the vocabulary JSON file.
+        merges_path: Path to the merges text file.
+        special_tokens: Optional list of special tokens.
+
+    Yields:
+        Token IDs from the encoded file.
+    """
+    special_tokens = special_tokens or []
+    file_size = os.stat(file_path).st_size
+    num_workers = min(os.cpu_count() or 1, 10)
+    num_chunks = max(num_workers, file_size // 1_000_000)  # 10MB chunks
+
+    with open(file_path, "rb") as f:
+        boundaries = find_chunk_boundaries(f, num_chunks, b"<|endoftext|>")
+
+    logger.info(
+        "Found {} chunk boundaries ({} chunks) for {:.2f} GB file",
+        len(boundaries),
+        max(0, len(boundaries) - 1),
+        file_size / 1_000_000_000,
+    )
+    chunk_pairs = list(zip(boundaries[:-1], boundaries[1:]))
+
+    # Prepare args for each chunk - pass paths so tokenizer is created in worker
+    chunk_args = [(file_path, start, end, vocab_path, merges_path, special_tokens) for start, end in chunk_pairs]
+
+    logger.info("Encoding file in {} workers", num_workers)
+    with Pool(num_workers) as pool:
+        for batch_start in tqdm(range(0, len(chunk_args), num_workers), desc="Processing batches"):
+            batch_end = min(batch_start + num_workers, len(chunk_args))
+            batch_chunk_args = chunk_args[batch_start:batch_end]
+            results = pool.map(_encode_file_chunk, batch_chunk_args)
+
+            for result in results:
+                yield from result
+
+
+def _encode_file_chunk(
+    args: tuple[str | Path, int, int, str, str, list[str]],
+) -> list[int]:
+    """Helper function for multiprocessing - must be at module level to be picklable."""
+    file_path, start, end, vocab_path, merges_path, special_tokens = args
+
+    # Create tokenizer in worker process
+    tokenizer = Tokenizer.from_file(vocab_path, merges_path, special_tokens)
+
+    with open(file_path, "rb") as f:
+        f.seek(start)
+        chunk = f.read(end - start).decode("utf-8")
+
+    return tokenizer.encode(chunk)
+
+
+def _add_special_tokens(vocab: dict[int, bytes], special_tokens: list[str] | None = None):
+    vocab_values = set(vocab.values())
+
+    if special_tokens is None:
+        return
+
+    for special_token in special_tokens:
+        byte_encoded_special_token = special_token.encode("utf-8")
+        if byte_encoded_special_token in vocab_values:
+            continue
+        vocab[len(vocab)] = special_token.encode("utf-8")

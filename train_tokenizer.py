@@ -10,6 +10,30 @@ TOKENIZER_PATH = Path("tokenizers")
 TOKENIZER_PATH.mkdir(parents=True, exist_ok=True)
 
 
+TOKENIZE_DATASETS = {
+    "tinystories_gpt4_valid": {
+        "input_path": "data/TinyStoriesV2-GPT4-valid.txt",
+        "vocab_size": 10000,
+        "special_tokens": ["<|endoftext|>"],
+    },
+    "owt_valid": {
+        "input_path": "data/owt_valid.txt",
+        "vocab_size": 10000,
+        "special_tokens": ["<|endoftext|>"],
+    },
+    "tinystories_gpt4_train": {
+        "input_path": "data/TinyStoriesV2-GPT4-train.txt",
+        "vocab_size": 10000,
+        "special_tokens": ["<|endoftext|>"],
+    },
+    "owt_train": {
+        "input_path": "data/owt_train.txt",
+        "vocab_size": 10000,
+        "special_tokens": ["<|endoftext|>"],
+    },
+}
+
+
 def save_tokenizer(
     path: Path,
     name: str,
@@ -28,27 +52,16 @@ def save_tokenizer(
 
 
 def main():
-    logger.info("Training tinystories_gpt4_train BPE tokenizer")
-    vocab, merges = run_train_bpe(
-        input_path="data/TinyStoriesV2-GPT4-train.txt",
-        vocab_size=32000,
-        special_tokens=["<|endoftext|>"],
-        verbose=True,
-    )
-
-    logger.info("Saving tinystories_gpt4_train BPE tokenizer")
-    save_tokenizer(TOKENIZER_PATH, "tinystories_gpt4_train", vocab, merges)
-
-    logger.info("Training owt_train BPE tokenizer")
-    vocab, merges = run_train_bpe(
-        input_path="data/owt_train.txt",
-        vocab_size=32000,
-        special_tokens=["<|endoftext|>"],
-        verbose=True,
-    )
-
-    logger.info("Saving owt_train BPE tokenizer")
-    save_tokenizer(TOKENIZER_PATH, "owt_train", vocab, merges)
+    for name, dataset in TOKENIZE_DATASETS.items():
+        logger.info(f"Training {name} BPE tokenizer")
+        vocab, merges = run_train_bpe(
+            input_path=dataset["input_path"],
+            vocab_size=dataset["vocab_size"],
+            special_tokens=dataset["special_tokens"],
+            verbose=True,
+        )
+        logger.info(f"Saving {name} BPE tokenizer")
+        save_tokenizer(TOKENIZER_PATH, name, vocab, merges)
 
 
 if __name__ == "__main__":
