@@ -1,3 +1,7 @@
+import os
+from pathlib import Path
+from typing import Literal
+
 import chz
 import torch
 from loguru import logger
@@ -5,10 +9,19 @@ from loguru import logger
 from cs336_basics.optim import AdamW, CosineAnnealingLRScheduler
 from cs336_basics.transformer_lm import TransformerLM
 
+Dataset = Literal["tinystories", "owt"]
+
+DATASET_PATHS: dict[Dataset, Path] = {
+    "tinystories": Path("data/TinyStoriesV2-GPT4-train.txt"),
+    "owt": Path("data/owt_train.txt"),
+}
+
+CHECKPOINT_ROOT = Path(".checkpoints")
+
 
 @chz.chz(typecheck=True)
 class ModelConfig:
-    vocab_size: int = 10000
+    vocab_size: int = 32000
     context_length: int = 256
     d_model: int = 512
     d_ff: int = 1344
@@ -19,14 +32,47 @@ class ModelConfig:
 
 @chz.chz(typecheck=True)
 class TrainingConfig:
-    checkpoint_dir: str = ".checkpoints"
-    lr_max: float = 0.002
-    lr_min: float = 0.0002
-    warmup_t: int = 1000
-    cosine_cycle_t: int = 10000
+    name: str
+    dataset: Dataset = "tinystories"
     epochs: int = 10
     batch_size: int = 128
+    lr_max: float = 5e-2
+    lr_min: float = 5e-4
+    warmup_t: int = 5000
+    cosine_cycle_t: int = 50000
     model: ModelConfig
+
+    @chz.init_property
+    def dataset_path(self) -> Path:
+        return DATASET_PATHS[self.dataset]
+
+    @chz.init_property
+    def checkpoint_dir(self) -> Path:
+        return CHECKPOINT_ROOT / self.name
+
+    @chz.init_property
+    def checkpoint_data_path(self) -> Path | None:
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
+
+        ckpt_files = list(self.checkpoint_dir.glob("*.pt"))
+        if not ckpt_files:
+            return None
+
+        numeric_ckpts = []
+        for f in ckpt_files:
+            try:
+                numeric_ckpts.append((int(f.stem), f))
+            except ValueError:
+                logger.warning(f"Ignoring non-numeric checkpoint file: {f.name}")
+                continue
+
+        if not numeric_ckpts:
+            logger.warning("No valid numeric checkpoint files found")
+            return None
+
+        ckpt_file = max(numeric_ckpts, key=lambda x: x[0])[1]
+        logger.info(f"Loading checkpoint from {ckpt_file.name}")
+        return ckpt_file
 
 
 # run: wandb.Run = wandb.init(
