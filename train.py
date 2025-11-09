@@ -53,8 +53,6 @@ class TrainingConfig:
 
 
 def main(config: TrainingConfig):
-    logger.info(config)
-
     device = "cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     logger.info(f"Using device: {device}")
 

@@ -28,27 +28,27 @@ def save_tokenizer(
 
 
 def main():
-    logger.info("Training owt_valid BPE tokenizer")
+    logger.info("Training tinystories_gpt4_train BPE tokenizer")
     vocab, merges = run_train_bpe(
-        input_path="data/owt_valid.txt",
-        vocab_size=10000,
+        input_path="data/TinyStoriesV2-GPT4-train.txt",
+        vocab_size=32000,
         special_tokens=["<|endoftext|>"],
         verbose=True,
     )
 
-    logger.info("Saving owt_valid BPE tokenizer")
-    save_tokenizer(TOKENIZER_PATH, "owt_valid", vocab, merges)
+    logger.info("Saving tinystories_gpt4_train BPE tokenizer")
+    save_tokenizer(TOKENIZER_PATH, "tinystories_gpt4_train", vocab, merges)
 
-    logger.info("Training tinystories_gpt4_valid BPE tokenizer")
+    logger.info("Training owt_train BPE tokenizer")
     vocab, merges = run_train_bpe(
-        input_path="data/TinyStoriesV2-GPT4-valid.txt",
-        vocab_size=10000,
+        input_path="data/owt_train.txt",
+        vocab_size=32000,
         special_tokens=["<|endoftext|>"],
         verbose=True,
     )
 
-    logger.info("Saving tinystories_gpt4_valid BPE tokenizer")
-    save_tokenizer(TOKENIZER_PATH, "tinystories_gpt4_valid", vocab, merges)
+    logger.info("Saving owt_train BPE tokenizer")
+    save_tokenizer(TOKENIZER_PATH, "owt_train", vocab, merges)
 
 
 if __name__ == "__main__":
