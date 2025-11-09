@@ -50,6 +50,32 @@ class AdamW(torch.optim.Optimizer):
         return loss
 
 
+class CosineAnnealingLRScheduler(torch.optim.lr_scheduler.LRScheduler):
+    def __init__(
+        self,
+        optimizer: torch.optim.Optimizer,
+        lr_max: float,
+        lr_min: float,
+        warmup_t: int,
+        cosine_cycle_t: int,
+        t_0: int = -1,
+    ):
+        self.t_0 = t_0
+        self.lr_max = lr_max
+        self.lr_min = lr_min
+        self.warmup_t = warmup_t
+        self.cosine_cycle_t = cosine_cycle_t
+        super().__init__(optimizer)
+
+    def get_lr(self):
+        if not self._get_lr_called_within_step:
+            raise UserWarning("To get the last learning rate computed by the scheduler, please use `get_last_lr()`.")
+
+        self.t_0 += 1
+        lr = lr_cosine_schedule(self.t_0, self.lr_max, self.lr_min, self.warmup_t, self.cosine_cycle_t)
+        return [lr for _ in self.optimizer.param_groups]
+
+
 def lr_cosine_schedule(
     t: int,
     lr_max: float,

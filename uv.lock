@@ -144,6 +144,18 @@ wheels = [
 ]
 
 [[package]]
+name = "chz"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/63/d1758a5ee3f7af14681c9d440462b978e6dc4ef7b6bf367174de6d1f413a/chz-0.3.0.tar.gz", hash = "sha256:cdb7aecee4732b7dd5df0fad9fef1dbe3d9a8c2eddc0fb41076b3f09016b2c17", size = 75694, upload-time = "2025-03-01T01:51:06.939Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f5/a4/cddff39d5df387bb1efe1b6213df1648cd1c6b75d8782fb7b23d3081467d/chz-0.3.0-py3-none-any.whl", hash = "sha256:f9761e72a3430b35e0200ed61747917f24b6975057e7b735f9555e1429bd7b9f", size = 51830, upload-time = "2025-03-01T01:51:05.234Z" },
+]
+
+[[package]]
 name = "click"
 version = "8.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -187,6 +199,7 @@ name = "cs336-basics"
 version = "1.0.6"
 source = { editable = "." }
 dependencies = [
+    { name = "chz" },
     { name = "einops" },
     { name = "einx" },
     { name = "jaxtyping" },
@@ -215,6 +228,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "chz", specifier = ">=0.3.0" },
     { name = "einops", specifier = ">=0.8.1" },
     { name = "einx", specifier = ">=0.3.0" },
     { name = "jaxtyping", specifier = ">=0.3.0" },
