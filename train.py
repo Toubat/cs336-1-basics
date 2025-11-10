@@ -1,5 +1,4 @@
 import hashlib
-import os
 from pathlib import Path
 from typing import Literal
 
@@ -14,7 +13,7 @@ import wandb
 from cs336_basics.loss import CrossEntropyLoss
 from cs336_basics.optim import AdamW, CosineAnnealingLRScheduler, gradient_clipping
 from cs336_basics.transformer_lm import TransformerLM
-from cs336_basics.utils import get_batch, load_checkpoint, save_checkpoint
+from cs336_basics.utils import get_batch, get_latest_checkpoint_path, load_checkpoint, save_checkpoint
 
 Dataset = Literal["tinystories", "owt"]
 
@@ -76,27 +75,7 @@ class TrainingConfig:
 
     @chz.init_property
     def checkpoint_data_path(self) -> Path | None:
-        os.makedirs(self.checkpoint_dir, exist_ok=True)
-
-        ckpt_files = list(self.checkpoint_dir.glob("*.pt"))
-        if not ckpt_files:
-            return None
-
-        numeric_ckpts = []
-        for f in ckpt_files:
-            try:
-                numeric_ckpts.append((int(f.stem), f))
-            except ValueError:
-                logger.warning(f"Ignoring non-numeric checkpoint file: {f.name}")
-                continue
-
-        if not numeric_ckpts:
-            logger.warning("No valid numeric checkpoint files found")
-            return None
-
-        ckpt_file = max(numeric_ckpts, key=lambda x: x[0])[1]
-        logger.info(f"Loading checkpoint from {ckpt_file.name}")
-        return ckpt_file
+        return get_latest_checkpoint_path(self.checkpoint_dir)
 
 
 def get_dataset(config: TrainingConfig, mode: Literal["train", "valid"]) -> npt.NDArray:
@@ -193,7 +172,7 @@ def main(config: TrainingConfig):
             lr_scheduler.step()
 
             # Clear MPS cache periodically to avoid fragmentation
-            if device == "mps" and step % 10 == 0:
+            if device == "mps" and step % 200 == 0:
                 torch.mps.empty_cache()
 
             if step % config.valid_interval == 0:

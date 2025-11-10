@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
 from typing import IO, BinaryIO
 
 import numpy as np
 import numpy.typing as npt
 import torch
+from loguru import logger
 
 
 def get_batch(
@@ -48,3 +50,28 @@ def load_checkpoint(
     model.load_state_dict(checkpoint["model"])
     optimizer.load_state_dict(checkpoint["optimizer"])
     return checkpoint["iteration"]
+
+
+def get_latest_checkpoint_path(checkpoint_dir: os.PathLike) -> Path | None:
+    os.makedirs(checkpoint_dir, exist_ok=True)
+
+    ckpt_files = list(Path(checkpoint_dir).glob("*.pt"))
+    if not ckpt_files:
+        return None
+
+    numeric_ckpts = []
+    for f in ckpt_files:
+        try:
+            numeric_ckpts.append((int(f.stem), f))
+        except ValueError:
+            logger.warning(f"Ignoring non-numeric checkpoint file: {f.name}")
+            continue
+
+    if not numeric_ckpts:
+        logger.warning("No valid numeric checkpoint files found")
+        return None
+
+    ckpt_file = max(numeric_ckpts, key=lambda x: x[0])[1]
+    logger.info(f"Loading checkpoint from {ckpt_file.name}")
+
+    return ckpt_file
