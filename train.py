@@ -1,6 +1,6 @@
 import hashlib
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import chz
 import numpy as np
@@ -111,6 +111,13 @@ def main(config: TrainingConfig):
     else:
         t0 = -1
         logger.info("No checkpoint found, starting from scratch")
+
+    logger.info("Compiling model...")
+    if device == "mps":
+        model = cast(TransformerLM, torch.compile(model, backend="aot_eager"))
+    else:
+        model = cast(TransformerLM, torch.compile(model))
+    logger.info("Model compiled")
 
     lr_scheduler = CosineAnnealingLRScheduler(
         optimizer,

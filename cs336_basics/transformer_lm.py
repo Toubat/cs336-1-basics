@@ -75,9 +75,15 @@ class TransformerLM(nn.Module):
             if top_p < 1.0:
                 prob_sorted, prob_ids = probs.sort(descending=True)
                 prob_sorted_cumsum = torch.cumsum(prob_sorted, dim=0)
-                mask = torch.cat([torch.zeros(1, device=probs.device), prob_sorted_cumsum]) < top_p
-                probs[~mask[:-1]] = 0.0
-                probs = probs / torch.sum(probs)
+                # Keep the smallest set of highest-prob tokens whose cumsum >= top_p
+                # Keep token i if cumsum before adding it is < top_p
+                mask = prob_sorted_cumsum - prob_sorted < top_p
+                prob_sorted[~mask] = 0.0
+                prob_sorted = prob_sorted / torch.sum(prob_sorted)
+
+                # Unsort probabilities back to original order
+                probs = torch.zeros_like(probs)
+                probs[prob_ids] = prob_sorted
 
             token_id = int(torch.multinomial(probs, num_samples=1).item())
             tokens.append(token_id)
