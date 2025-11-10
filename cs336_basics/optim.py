@@ -110,7 +110,12 @@ def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: flo
         return
 
     # Compute total L2 norm across all gradients
-    total_norm_squared = torch.tensor(0.0, requires_grad=False)
+    # Initialize on same device as first gradient to avoid device mismatch
+    first_grad = params_with_grad[0].grad
+    assert first_grad is not None
+    device = first_grad.device
+
+    total_norm_squared = torch.tensor(0.0, device=device, requires_grad=False)
     for p in params_with_grad:
         assert p.grad is not None
         total_norm_squared = total_norm_squared.add_(torch.sum(p.grad.data**2))

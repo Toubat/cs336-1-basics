@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 import wandb
 from cs336_basics.loss import CrossEntropyLoss
-from cs336_basics.optim import AdamW, CosineAnnealingLRScheduler
+from cs336_basics.optim import AdamW, CosineAnnealingLRScheduler, gradient_clipping
 from cs336_basics.transformer_lm import TransformerLM
 from cs336_basics.utils import get_batch, load_checkpoint, save_checkpoint
 
@@ -51,12 +51,13 @@ class ModelConfig:
 class TrainingConfig:
     name: str
     dataset: Dataset = "tinystories"
-    epochs: int = 10000
-    batch_size: int = 32  # Reduced from 32 to fit in MPS memory
-    lr_max: float = 5e-2
-    lr_min: float = 5e-4
-    warmup_t: int = 1000
-    cosine_cycle_t: int = 50000
+    epochs: int = 15000
+    batch_size: int = 32
+    lr_max: float = 1e-3
+    lr_min: float = 1e-5
+    warmup_t: int = 1500
+    cosine_cycle_t: int = 10000
+    gradient_clipping_norm: float = 1.0  # Back to 1.0, will also clip RMSNorm separately
     model: ModelConfig
     valid_interval: int = 50
     valid_steps: int = 10
@@ -123,7 +124,7 @@ def main(config: TrainingConfig):
     )
     model.to(device)
 
-    optimizer = AdamW(model.parameters())
+    optimizer = AdamW(model.parameters(), weight_decay=0.001)  # Reduced from default 0.01
 
     if config.checkpoint_data_path is not None:
         logger.info(f"Loading checkpoint from {config.checkpoint_data_path.name}")
@@ -176,6 +177,18 @@ def main(config: TrainingConfig):
             )
 
             loss.backward()
+
+            # Clip RMSNorm gamma gradients separately to prevent collapse
+            for name, param in model.named_parameters():
+                if "gamma" in name and param.grad is not None:
+                    param.grad.data.clamp_(-1.0, 1.0)
+
+            total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), float("inf"))
+            if step % 10 == 0:
+                run.log({"gradient_norm": total_norm.item()}, step=step)
+
+            gradient_clipping(model.parameters(), config.gradient_clipping_norm)
+
             optimizer.step()
             lr_scheduler.step()
 
