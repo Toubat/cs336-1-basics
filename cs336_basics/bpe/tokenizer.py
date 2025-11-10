@@ -50,7 +50,8 @@ class Tokenizer:
                 raw_merges.append((token_bytes[0], token_bytes[1]))
 
         vocab = {
-            vocab_id: bytes([gpt2_byte_decoder[b] for b in vocab_token]) for vocab_id, vocab_token in raw_vocab.items()
+            int(vocab_id): bytes([gpt2_byte_decoder[b] for b in vocab_token])
+            for vocab_id, vocab_token in raw_vocab.items()
         }
         merges = [
             (
@@ -174,7 +175,9 @@ def _encode_file_chunk(
         f.seek(start)
         chunk = f.read(end - start).decode("utf-8")
 
-    return tokenizer.encode(chunk)
+    results = tokenizer.encode(chunk)
+    results.extend(tokenizer.encode("<|endoftext|>"))
+    return results
 
 
 def _add_special_tokens(vocab: dict[int, bytes], special_tokens: list[str] | None = None):
