@@ -169,3 +169,4 @@ profile.*
 outputs/
 tokenizers/
 wandb/
+.checkpoints/

@@ -30,6 +30,7 @@ class TransformerBlock(nn.Module):
         x: Float[Tensor, "bs seq_len d_model"],
         rope_config: RoPEConfig | None = None,
     ) -> Float[Tensor, "bs seq_len d_model"]:
-        x += self.attn(self.ln1(x), rope_config=rope_config)
-        x += self.ffn(self.ln2(x))
+        # Use regular addition instead of inplace to avoid MPS gradient issues
+        x = x + self.attn(self.ln1(x), rope_config=rope_config)
+        x = x + self.ffn(self.ln2(x))
         return x

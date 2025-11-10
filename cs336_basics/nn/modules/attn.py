@@ -42,11 +42,11 @@ class MultiHeadAttention(nn.Module):
             d_k = rope_config.d_k
             max_seq_len = rope_config.max_seq_len
             token_positions = rope_config.token_positions
-            q = apply_rope(d_k, theta, max_seq_len, q, token_positions)
-            k = apply_rope(d_k, theta, max_seq_len, k, token_positions)
+            q = apply_rope(d_k, theta, max_seq_len, q, token_positions, device=x.device)
+            k = apply_rope(d_k, theta, max_seq_len, k, token_positions, device=x.device)
 
         seq_len = q.shape[-2]
-        mask = torch.tril(torch.ones((seq_len, seq_len))).bool()  # (seq_len, seq_len)
+        mask = torch.tril(torch.ones((seq_len, seq_len))).bool().to(x.device)  # (seq_len, seq_len)
         o = scaled_dot_product_attention(q, k, v, mask)  # (bs, num_heads, seq_len, d_k)
         o = rearrange(o, "bs num_heads seq_len d_k -> bs seq_len (num_heads d_k)")
 

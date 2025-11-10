@@ -12,10 +12,9 @@ from tqdm import tqdm
 
 import wandb
 from cs336_basics.loss import CrossEntropyLoss
-from cs336_basics.nn.modules.utils import softmax
 from cs336_basics.optim import AdamW, CosineAnnealingLRScheduler
 from cs336_basics.transformer_lm import TransformerLM
-from cs336_basics.utils import get_batch, load_checkpoint
+from cs336_basics.utils import get_batch, load_checkpoint, save_checkpoint
 
 Dataset = Literal["tinystories", "owt"]
 
@@ -53,10 +52,10 @@ class TrainingConfig:
     name: str
     dataset: Dataset = "tinystories"
     epochs: int = 5000
-    batch_size: int = 128
+    batch_size: int = 32  # Reduced from 32 to fit in MPS memory
     lr_max: float = 5e-2
     lr_min: float = 5e-4
-    warmup_t: int = 5000
+    warmup_t: int = 1000
     cosine_cycle_t: int = 50000
     model: ModelConfig
     valid_interval: int = 100
@@ -107,6 +106,11 @@ def get_dataset(config: TrainingConfig, mode: Literal["train", "valid"]) -> npt.
 def main(config: TrainingConfig):
     device = "cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     logger.info(f"Using device: {device}")
+
+    # Clear MPS cache from previous runs
+    if device == "mps":
+        torch.mps.empty_cache()
+        logger.info("Cleared MPS cache")
 
     model = TransformerLM(
         vocab_size=config.model.vocab_size,
@@ -159,8 +163,6 @@ def main(config: TrainingConfig):
             optimizer.zero_grad()
 
             batch_X, batch_y = get_batch(train, config.batch_size, config.model.context_length, device)
-            if step == t0 + 1:
-                logger.info(f"Batch size: {batch_X.shape}")
 
             logits: torch.Tensor = model(batch_X)  # (bs, seq_len, vocab_size)
             loss: torch.Tensor = criterion(logits, batch_y)
@@ -174,14 +176,22 @@ def main(config: TrainingConfig):
             optimizer.step()
             lr_scheduler.step()
 
+            # Clear MPS cache periodically to avoid fragmentation
+            if device == "mps" and step % 10 == 0:
+                torch.mps.empty_cache()
+
             if step % config.valid_interval == 0:
                 valid_loss, valid_accuracy = run_evaluation(model, valid, config, device)
                 run.log({"valid_loss": valid_loss, "valid_accuracy (%)": valid_accuracy}, step=step)
 
+                save_checkpoint(model, optimizer, step, config.checkpoint_dir / f"{step}.pt")
+
 
 def compute_accuracy(logits: torch.Tensor, targets: torch.Tensor) -> float:
-    actual = softmax(logits, dim=-1).argmax(dim=-1)
-    correct = (actual == targets).sum().item()
+    with torch.no_grad():
+        # Use argmax directly on logits without softmax (same result, less memory)
+        actual = logits.argmax(dim=-1)
+        correct = (actual == targets).sum().item()
     return correct / targets.numel()
 
 

@@ -234,7 +234,7 @@ def run_rope(
     Returns:
         Float[Tensor, " ... sequence_length d_k"]: Tensor with RoPEd input.
     """
-    return apply_rope(d_k, theta, max_seq_len, in_query_or_key, token_positions)
+    return apply_rope(d_k, theta, max_seq_len, in_query_or_key, token_positions, device=in_query_or_key.device)
 
 
 def run_transformer_block(
