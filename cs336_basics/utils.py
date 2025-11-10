@@ -17,7 +17,8 @@ def get_batch(
     for row in range(batch_size):
         indices[row, :] = np.arange(starts[row], starts[row] + M + 1)
 
-    batch = torch.from_numpy(dataset[indices]).to(device)
+    # Convert uint16 to int64 (torch.long) since PyTorch doesn't support uint16
+    batch = torch.from_numpy(dataset[indices].astype(np.int64)).to(device)
 
     return batch[:, :-1], batch[:, 1:]
 
