@@ -36,7 +36,7 @@ def stream_tokens_to_npy(
         if not (0 <= token < vocab_size):
             raise ValueError(f"Token {token} is out of range [0, {vocab_size})")
 
-        if pos > estimated_tokens:
+        if pos >= estimated_tokens:
             logger.warning("Estimated tokens exceeded. Stopping encoding.")
             break
 
@@ -53,10 +53,10 @@ def stream_tokens_to_npy(
 
 if __name__ == "__main__":
     stream_tokens_to_npy(
-        input_filepath="./data/TinyStoriesV2-GPT4-train.txt",
+        input_filepath="./data/TinyStoriesV2-GPT4-valid.txt",
         vocab_path="./tokenizers/tinystories_gpt4_train_vocab.json",
         merges_path="./tokenizers/tinystories_gpt4_train_merges.txt",
         special_tokens=["<|endoftext|>"],
-        output_path="./data/tinystories_gpt4_train.npy",
-        estimated_tokens=541000000,
+        output_path="./data/tinystories_gpt4_valid.npy",
+        estimated_tokens=5465905,
     )
