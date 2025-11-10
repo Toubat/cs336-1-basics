@@ -51,14 +51,14 @@ class ModelConfig:
 class TrainingConfig:
     name: str
     dataset: Dataset = "tinystories"
-    epochs: int = 5000
+    epochs: int = 10000
     batch_size: int = 32  # Reduced from 32 to fit in MPS memory
     lr_max: float = 5e-2
     lr_min: float = 5e-4
     warmup_t: int = 1000
     cosine_cycle_t: int = 50000
     model: ModelConfig
-    valid_interval: int = 100
+    valid_interval: int = 50
     valid_steps: int = 10
 
     @chz.init_property
@@ -159,7 +159,10 @@ def main(config: TrainingConfig):
         run.watch(model, log="all", log_freq=100)
 
         model.train()
-        for step in tqdm(range(t0 + 1, config.epochs), desc="Steps", total=config.epochs - t0 - 1):
+        for step in tqdm(range(config.epochs), desc="Steps", total=config.epochs):
+            if step <= t0 + 1:
+                continue
+
             optimizer.zero_grad()
 
             batch_X, batch_y = get_batch(train, config.batch_size, config.model.context_length, device)
