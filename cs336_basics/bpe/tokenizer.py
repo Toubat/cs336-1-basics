@@ -134,7 +134,7 @@ def encode_file_stream(
     """
     special_tokens = special_tokens or []
     file_size = os.stat(file_path).st_size
-    num_workers = min(os.cpu_count() or 1, 10)
+    num_workers = min(os.cpu_count() or 1, 75)
     num_chunks = max(num_workers, file_size // 1_000_000)  # 10MB chunks
 
     with open(file_path, "rb") as f:

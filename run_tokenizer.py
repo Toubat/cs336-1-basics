@@ -57,6 +57,6 @@ if __name__ == "__main__":
         vocab_path="./tokenizers/tinystories_gpt4_train_vocab.json",
         merges_path="./tokenizers/tinystories_gpt4_train_merges.txt",
         special_tokens=["<|endoftext|>"],
-        output_path="./data/tinystories_gpt4_train.npy",
+        output_path="../../tinystories_gpt4_train.npy",
         estimated_tokens=550000000,
     )

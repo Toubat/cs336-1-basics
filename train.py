@@ -14,6 +14,9 @@ from cs336_basics.loss import CrossEntropyLoss
 from cs336_basics.optim import AdamW, CosineAnnealingLRScheduler, gradient_clipping
 from cs336_basics.transformer_lm import TransformerLM
 from cs336_basics.utils import get_batch, get_latest_checkpoint_path, load_checkpoint, save_checkpoint
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
 
 Dataset = Literal["tinystories", "owt"]
 
@@ -37,7 +40,7 @@ CHECKPOINT_ROOT = Path(".checkpoints")
 
 @chz.chz(typecheck=True)
 class ModelConfig:
-    vocab_size: int = 32000
+    vocab_size: int = 10000
     context_length: int = 256
     d_model: int = 512
     d_ff: int = 1344
@@ -50,12 +53,12 @@ class ModelConfig:
 class TrainingConfig:
     name: str
     dataset: Dataset = "tinystories"
-    epochs: int = 15000
+    epochs: int = 10000
     batch_size: int = 32
     lr_max: float = 1e-3
     lr_min: float = 1e-5
     warmup_t: int = 1500
-    cosine_cycle_t: int = 10000
+    cosine_cycle_t: int = 6500
     gradient_clipping_norm: float = 1.0  # Back to 1.0, will also clip RMSNorm separately
     model: ModelConfig
     valid_interval: int = 50

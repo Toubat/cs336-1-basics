@@ -25,6 +25,7 @@ dependencies = [
     "loguru>=0.7.3",
     "chz>=0.3.0",
     "modal>=1.2.2",
+    "python-dotenv>=1.2.1",
 ]
 
 [build-system]
