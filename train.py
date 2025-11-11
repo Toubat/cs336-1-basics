@@ -54,11 +54,11 @@ class TrainingConfig:
     name: str
     dataset: Dataset = "tinystories"
     epochs: int = 10000
-    batch_size: int = 32
-    lr_max: float = 1e-3
+    batch_size: int = 64
+    lr_max: float = 1e-1
     lr_min: float = 1e-5
-    warmup_t: int = 1500
-    cosine_cycle_t: int = 6500
+    warmup_t: int = 5000
+    cosine_cycle_t: int = 4000
     gradient_clipping_norm: float = 1.0  # Back to 1.0, will also clip RMSNorm separately
     model: ModelConfig
     valid_interval: int = 50
@@ -94,6 +94,8 @@ def main(config: TrainingConfig):
     if device == "mps":
         torch.mps.empty_cache()
         logger.info("Cleared MPS cache")
+    elif "cuda" in device:
+        torch.set_float32_matmul_precision('high')
 
     model = TransformerLM(
         vocab_size=config.model.vocab_size,
