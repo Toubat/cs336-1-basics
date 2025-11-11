@@ -24,6 +24,7 @@ dependencies = [
     "scalene>=1.5.54",
     "loguru>=0.7.3",
     "chz>=0.3.0",
+    "modal>=1.2.2",
 ]
 
 [build-system]
