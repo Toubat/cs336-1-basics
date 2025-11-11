@@ -6,6 +6,7 @@ import chz
 import numpy as np
 import numpy.typing as npt
 import torch
+from dotenv import find_dotenv, load_dotenv
 from loguru import logger
 from tqdm import tqdm
 
@@ -14,7 +15,6 @@ from cs336_basics.loss import CrossEntropyLoss
 from cs336_basics.optim import AdamW, CosineAnnealingLRScheduler, gradient_clipping
 from cs336_basics.transformer_lm import TransformerLM
 from cs336_basics.utils import get_batch, get_latest_checkpoint_path, load_checkpoint, save_checkpoint
-from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
@@ -57,8 +57,8 @@ class TrainingConfig:
     batch_size: int = 64
     lr_max: float = 1e-1
     lr_min: float = 1e-5
-    warmup_t: int = 9000
-    cosine_cycle_t: int = 4000
+    warmup_t: int = 4000
+    cosine_cycle_t: int = 9000
     gradient_clipping_norm: float = 1.0  # Back to 1.0, will also clip RMSNorm separately
     model: ModelConfig
     valid_interval: int = 50
@@ -95,7 +95,7 @@ def main(config: TrainingConfig):
         torch.mps.empty_cache()
         logger.info("Cleared MPS cache")
     elif "cuda" in device:
-        torch.set_float32_matmul_precision('high')
+        torch.set_float32_matmul_precision("high")
 
     model = TransformerLM(
         vocab_size=config.model.vocab_size,
