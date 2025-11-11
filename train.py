@@ -57,7 +57,7 @@ class TrainingConfig:
     batch_size: int = 64
     lr_max: float = 1e-1
     lr_min: float = 1e-5
-    warmup_t: int = 5000
+    warmup_t: int = 9000
     cosine_cycle_t: int = 4000
     gradient_clipping_norm: float = 1.0  # Back to 1.0, will also clip RMSNorm separately
     model: ModelConfig
@@ -110,19 +110,18 @@ def main(config: TrainingConfig):
 
     optimizer = AdamW(model.parameters(), weight_decay=0.001)  # Reduced from default 0.01
 
+    logger.info("Compiling model...")
+    if device == "mps":
+        model = cast(TransformerLM, torch.compile(model, backend="aot_eager"))
+    else:
+        model = cast(TransformerLM, torch.compile(model))
+
     if config.checkpoint_data_path is not None:
         logger.info(f"Loading checkpoint from {config.checkpoint_data_path.name}")
         t0 = load_checkpoint(config.checkpoint_data_path, model, optimizer)
     else:
         t0 = -1
         logger.info("No checkpoint found, starting from scratch")
-
-    logger.info("Compiling model...")
-    if device == "mps":
-        model = cast(TransformerLM, torch.compile(model, backend="aot_eager"))
-    else:
-        model = cast(TransformerLM, torch.compile(model))
-    logger.info("Model compiled")
 
     lr_scheduler = CosineAnnealingLRScheduler(
         optimizer,
