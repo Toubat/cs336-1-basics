@@ -55,13 +55,13 @@ class TrainingConfig:
     dataset: Dataset = "tinystories"
     epochs: int = 10000
     batch_size: int = 64
-    lr_max: float = 1e-1
-    lr_min: float = 1e-5
-    warmup_t: int = 4000
-    cosine_cycle_t: int = 9000
+    lr_max: float = 5e-3
+    lr_min: float = 5e-6
+    warmup_t: int = 1000
+    cosine_cycle_t: int = 8000
     gradient_clipping_norm: float = 1.0  # Back to 1.0, will also clip RMSNorm separately
     model: ModelConfig
-    valid_interval: int = 50
+    valid_interval: int = 100
     valid_steps: int = 10
 
     @chz.init_property
