@@ -53,10 +53,10 @@ def stream_tokens_to_npy(
 
 if __name__ == "__main__":
     stream_tokens_to_npy(
-        input_filepath="./data/TinyStoriesV2-GPT4-train.txt",
-        vocab_path="./tokenizers/tinystories_gpt4_train_vocab.json",
-        merges_path="./tokenizers/tinystories_gpt4_train_merges.txt",
+        input_filepath="./data/owt_train.txt",
+        vocab_path="./tokenizers/owt_train_vocab.json",
+        merges_path="./tokenizers/owt_train_merges.txt",
         special_tokens=["<|endoftext|>"],
-        output_path="../../tinystories_gpt4_train.npy",
-        estimated_tokens=550000000,
+        output_path="./data/owt_train.npy",
+        estimated_tokens=2985000000,
     )

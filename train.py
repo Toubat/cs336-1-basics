@@ -53,15 +53,15 @@ class ModelConfig:
 class TrainingConfig:
     name: str
     dataset: Dataset = "tinystories"
-    epochs: int = 10000
+    epochs: int = 20000
     batch_size: int = 64
     lr_max: float = 5e-3
     lr_min: float = 5e-6
-    warmup_t: int = 1000
-    cosine_cycle_t: int = 8000
+    warmup_t: int = 2000
+    cosine_cycle_t: int = 15000
     gradient_clipping_norm: float = 1.0  # Back to 1.0, will also clip RMSNorm separately
     model: ModelConfig
-    valid_interval: int = 100
+    valid_interval: int = 50
     valid_steps: int = 10
 
     @chz.init_property
@@ -190,6 +190,7 @@ def main(config: TrainingConfig):
                 valid_loss, valid_accuracy = run_evaluation(model, valid, config, device)
                 run.log({"valid_loss": valid_loss, "valid_accuracy (%)": valid_accuracy}, step=step)
 
+            if step % 500 == 0:
                 save_checkpoint(model, optimizer, step, config.checkpoint_dir / f"{step}.pt")
 
 
