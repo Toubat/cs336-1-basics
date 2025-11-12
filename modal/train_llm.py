@@ -26,6 +26,7 @@ with image.imports():
     gpu="H100",
     cpu=32,
     secrets=[modal.Secret.from_name("wandb")],
+    timeout=10000,
 )
 def train():
     config = TrainingConfig(
@@ -33,6 +34,7 @@ def train():
         volume_path=Path("/source/cs336-1-basics/"),
         remote=True,
         dataset="owt",
+        lr_max=2e-3,
         model=ModelConfig(),
     )
     train_llm(config)
