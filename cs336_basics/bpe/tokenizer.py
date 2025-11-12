@@ -8,8 +8,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from cs336_basics.bpe.pretokenize import pretokenize_text_iter
-from cs336_basics.bpe.utils import BytePair, TokenRef, find_chunk_boundaries, split_bytes
-from tests.common import gpt2_bytes_to_unicode
+from cs336_basics.bpe.utils import BytePair, TokenRef, find_chunk_boundaries, gpt2_bytes_to_unicode, split_bytes
 
 
 class Tokenizer:
