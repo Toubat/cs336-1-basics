@@ -31,6 +31,7 @@ def train():
     config = TrainingConfig(
         name="owt-cuda",
         volume_path=Path("/source/cs336-1-basics/"),
+        remote=True,
         dataset="owt",
         model=ModelConfig(),
     )

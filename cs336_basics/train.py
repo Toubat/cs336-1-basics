@@ -1,4 +1,5 @@
 import hashlib
+import shutil
 from pathlib import Path
 from typing import Literal, cast
 
@@ -57,6 +58,7 @@ class ModelConfig:
 class TrainingConfig:
     name: str
     volume_path: Path = Path(".")
+    remote: bool = False
     dataset: Dataset = "owt"
     epochs: int = 20000
     batch_size: int = 64
@@ -87,8 +89,18 @@ class TrainingConfig:
 
 
 def get_dataset(config: TrainingConfig, mode: Literal["train", "valid"]) -> npt.NDArray:
-    path = DATASET_TRAIN_PATHS[config.dataset] if mode == "train" else DATASET_VALID_PATHS[config.dataset]
-    return np.lib.format.open_memmap(config.volume_path / path, mode="r", dtype=np.uint16)
+    rel_path = DATASET_TRAIN_PATHS[config.dataset] if mode == "train" else DATASET_VALID_PATHS[config.dataset]
+
+    if config.remote:
+        dest_path = Path(f"./{config.name}_{mode}_data.npy")
+        logger.info(f"Run on remote, copying dataset to local: {config.volume_path / rel_path} -> {dest_path}")
+        shutil.copy(config.volume_path / rel_path, dest_path, follow_symlinks=False)
+        path = dest_path
+    else:
+        path = config.volume_path / rel_path
+
+    logger.info(f"Loading {mode} dataset from {path}")
+    return np.lib.format.open_memmap(path, mode="r", dtype=np.uint16)
 
 
 def get_tokenizer(config: TrainingConfig) -> Tokenizer:
@@ -207,19 +219,6 @@ def train(config: TrainingConfig):
 
             if step % 500 == 0:
                 save_checkpoint(model, optimizer, step, config.checkpoint_dir / f"{step}.pt")
-
-                logger.info(f"Generating text under {config.name} at step {step}")
-                full_text = ""
-                for chunk in model.completion(
-                    "Here's a fun story about a cat that went to the moon:",
-                    tokenizer=tokenizer,
-                    temperature=1.0,
-                    max_tokens=512,
-                ):
-                    full_text += chunk
-                    print(chunk, end="", flush=True)
-
-                run.log({"full_text": full_text}, step=step)
 
 
 def compute_accuracy(logits: torch.Tensor, targets: torch.Tensor) -> float:
