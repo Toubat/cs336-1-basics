@@ -31,8 +31,8 @@ class Tokenizer:
     @classmethod
     def from_file(
         cls,
-        vocab_path: str,
-        merges_path: str,
+        vocab_path: str | Path,
+        merges_path: str | Path,
         special_tokens: list[str] | None = None,
     ):
         raw_vocab: dict[int, str] = {}
