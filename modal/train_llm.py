@@ -30,11 +30,12 @@ with image.imports():
 )
 def train():
     config = TrainingConfig(
-        name="owt-cuda",
+        name="owt-cuda-v2",
         volume_path=Path("/source/cs336-1-basics/"),
         remote=True,
         dataset="owt",
         lr_max=2e-3,
+        lr_min=5e-7,
         model=ModelConfig(),
     )
     train_llm(config)
